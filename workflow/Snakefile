@@ -61,7 +61,7 @@ rule blastp:
     output:
         "analysis/blast/{assembly}/{database}.txt"
     log:
-        "logs/blast/{database}.log"
+        "logs/blast/{assembly}_{database}.log"
     params:
         db = "databases/{database}.faa",
         outfmt = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle",
