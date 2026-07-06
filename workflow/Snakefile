@@ -50,7 +50,7 @@ rule opsinmaphmm:
     threads:
         8
     shell:
-        "opsinmaphmm -f -i {input.fasta} -t {threads} -o {output} -d {input.data}/*/* &> {log}"
+        "opsinmaphmm -f -i {input.fasta} -t {threads} -o {output} -d {input.data}/* &> {log}"
 
 rule blastp:
     input:
