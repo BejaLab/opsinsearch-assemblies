@@ -22,20 +22,22 @@ rule opsintools_data:
     conda:
         "envs/opsintools.yaml"
     shell:
-        "opsindata -d {output}"
+        "opsindata -d {output} && rm -f {output}/*/microb_rhodopsins_align.tsv"
 
 rule getorf:
     input:
         "input/{assembly}.fasta"
     output:
         "analysis/getorf/{assembly}.fasta"
+    log:
+        "logs/getorf/{assembly}.log"
     params:
         min_orf = MIN_ORF,
         max_orf = MAX_ORF
     conda:
         "envs/emboss.yaml"
     shell:
-        "getorf -minsize {params.min_orf} -filter -find 0 {input} > {output}"
+        "getorf -minsize {params.min_orf} -filter -find 0 {input} > {output} 2> {log}"
 
 rule opsinmaphmm:
     input:
@@ -44,13 +46,13 @@ rule opsinmaphmm:
     output:
         directory("analysis/opsinmaphmm/{assembly}")
     log:
-        "analysis/opsinmaphmm/{assembly}.log"
+        "logs/opsinmaphmm/{assembly}.log"
     conda:
         "envs/opsintools.yaml"
     threads:
         8
     shell:
-        "opsinmaphmm -f -i {input.fasta} -t {threads} -o {output} -d {input.data}/* &> {log}"
+        "opsinmaphmm -f -i {input.fasta} -t {threads} -o {output} -d {input.data}/*/* &> {log}"
 
 rule blastp:
     input:
@@ -58,6 +60,8 @@ rule blastp:
         opsinmap = "analysis/opsinmaphmm/{assembly}"
     output:
         "analysis/blast/{assembly}/{database}.txt"
+    log:
+        "logs/blast/{database}.log"
     params:
         db = "databases/{database}.faa",
         outfmt = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle",
@@ -67,7 +71,7 @@ rule blastp:
     threads:
         10
     shell:
-        "blastp -query {input.opsinmap}/trimmed.fasta -db {params.db} -out {output} -outfmt '{params.outfmt}' -num_threads {threads} -max_target_seqs {params.max_seq}"
+        "blastp -query {input.opsinmap}/trimmed.fasta -db {params.db} -out {output} -outfmt '{params.outfmt}' -num_threads {threads} -max_target_seqs {params.max_seq} &> {log}"
 
 rule collect_results:
     input:
