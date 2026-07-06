@@ -1,0 +1,20 @@
+name: opsintools
+channels:
+ - conda-forge
+ - bioconda
+ - salilab
+ - anaconda
+ - schrodinger
+ - nodefaults
+dependencies:
+ - python=3.10
+ - biopython=1.86
+ - dssp=3.0.0
+ - t-coffee=13.46.0.919e8c6b
+ - usalign=20241201
+ - mtm-align=20220104
+ - pymol=3.1.6.1
+ - pymol-psico=3.4.19
+ - pip
+ - pip:
+   - git+https://github.com/BejaLab/opsintools@967dc4d

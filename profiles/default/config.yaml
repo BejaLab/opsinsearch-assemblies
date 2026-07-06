@@ -1,0 +1,2 @@
+use-apptainer: True
+use-conda: True

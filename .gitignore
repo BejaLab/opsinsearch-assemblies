@@ -1,0 +1,13 @@
+# Snakemake runtime/cache
+.snakemake/
+
+# Workflow outputs and intermediates
+analysis/
+output/
+
+# Logs
+*.log
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

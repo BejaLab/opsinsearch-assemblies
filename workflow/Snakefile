@@ -1,0 +1,87 @@
+if not config:
+    configfile: "config/config.yaml"
+
+MIN_ORF = 99
+MAX_ORF = 1000000
+
+assemblies ,= glob_wildcards("input/{assembly}.fasta")
+databases  ,= glob_wildcards("databases/{database}.faa.pdb")
+
+if not assemblies:
+    raise ValueError("Add assemblies to directory input/ (make sure they have the extension .fasta")
+if not databases:
+    raise ValueError("Need at least one database in databases/ (detected by the presence of the .faa.pdb file")
+
+rule all:
+    input:
+        expand("output/{assembly}.tsv", assembly = assemblies)
+
+rule opsintools_data:
+    output:
+        "analysis/opsintools"
+    conda:
+        "envs/opsintools.yaml"
+    shell:
+        "opsindata -d {output}"
+
+rule getorf:
+    input:
+        "input/{assembly}.fasta"
+    output:
+        "analysis/getorf/{assembly}.fasta"
+    params:
+        min_orf = MIN_ORF,
+        max_orf = MAX_ORF
+    conda:
+        "envs/emboss.yaml"
+    shell:
+        "getorf -minsize {params.min_orf} -filter -find 0 {input} > {output}"
+
+rule opsinmaphmm:
+    input:
+        fasta = "analysis/getorf/{assembly}.fasta",
+        data = "analysis/opsintools"
+    output:
+        directory("analysis/opsinmaphmm/{assembly}")
+    log:
+        "analysis/opsinmaphmm/{assembly}.log"
+    conda:
+        "envs/opsintools.yaml"
+    threads:
+        8
+    shell:
+        "opsinmaphmm -f -i {input.fasta} -t {threads} -o {output} -d {input.data}/*/* &> {log}"
+
+rule blastp:
+    input:
+        pdb = "databases/{database}.faa.pdb",
+        opsinmap = "analysis/opsinmaphmm/{assembly}"
+    output:
+        "analysis/blast/{assembly}/{database}.txt"
+    params:
+        db = "databases/{database}.faa",
+        outfmt = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle",
+        max_seq = 10
+    conda:
+        "envs/blast.yaml"
+    threads:
+        10
+    shell:
+        "blastp -query {input.opsinmap}/trimmed.fasta -db {params.db} -out {output} -outfmt '{params.outfmt}' -num_threads {threads} -max_target_seqs {params.max_seq}"
+
+rule collect_results:
+    input:
+        blast = expand("analysis/blast/{{assembly}}/{database}.txt", database = databases),
+        opsinmap = "analysis/opsinmaphmm/{assembly}",
+        fasta = "analysis/getorf/{assembly}.fasta"
+    output:
+        "output/{assembly}.tsv"
+    params:
+        pos = config['pos'],
+        hmm_score = config['hmm_score'],
+        blast_evalue = config['blast_evalue'],
+        mapping_score = config['mapping_score']
+    conda:
+        "envs/opsintools.yaml"
+    script:
+        "scripts/collect_results.py"
